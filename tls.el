@@ -678,4 +678,198 @@
 ;; this returns (nil) => problem for elisp
 (edd1 '())
 
+;; C7. Friends and Relations
+
+(defun set? (lat)
+  (cond
+   ((null? lat) t)
+   ((member? (car lat) (cdr lat)) nil)
+   (t (set? (cdr lat)))
+   )
+  )
+
+(set? '(a b a c d e))
+(set? '(a b c d e))
+(set? '(apple 3 pear 4 9 apple 3 4))
+
+(defun makeset (lat)
+  (cond
+   ((null? lat) lat)
+   ((member? (car lat) (cdr lat)) (makeset (cdr lat)))
+   (t (cons (car lat) (makeset (cdr lat))))
+   )
+  )
+
+(makeset '(a b a c d e))
+
+;; makeset written with multirember
+;; (defun makeset (lat)
+;;   (cond
+;;    ((null? lat) lat)
+;;    (t (cons (car lat) (makeset (multirember (car lat) (cdr lat)))))
+;;    )
+;;   )
+
+(defun subset? (set1 set2)
+  (cond
+   ((null? set1) t)
+   ;; ((null? set2) nil)
+   (t (and (member? (car set1) set2) (subset? (cdr set1) set2)))
+   )
+  )
+
+(subset? '(a b c) '(a c e b f))
+(subset? '(a b c g) '(a c e b f))
+
+(defun eqset? (set1 set2)
+   (and (subset? set1 set2) (subset? set2 set1))
+  )
+
+(eqset? '(6 large chickens with wings) '(6 chickens with large wings))
+(eqset? '(6 large chickens with wings) '(6 chickens with large))
+
+(defun intersect? (set1 set2)
+  (cond
+   ((or (null? set1) (null? set2)) nil)
+   (t (or (member? (car set1) set2) (intersect? (cdr set1) set2)))
+   )
+  )
+
+(intersect? '(a b c d e) '(u t f g c m l))
+
+(defun intersect (set1 set2)
+  (cond
+   ((or (null? set1) (null? set2)) nil)
+   ((member? (car set1) set2) (cons (car set1) (intersect (cdr set1) set2)))
+   (t (intersect (cdr set1) set2))
+   )
+  )
+(intersect '(a b c d e) '(u t f g c m l))
+
+(defun union (set1 set2)
+  (cond
+   ((null? set1) set2)
+   ((member? (car set1) set2) (union (cdr set1) set2))
+   (t (cons (car set1) (union (cdr set1) set2)))
+   )
+  )
+(union '(a b c d e) '(u t f g c m l))
+
+;; my version
+;; (defun intersectall (l-set)
+;;   (cond
+;;    ((null? l-set) nil)
+;;    ((eq? (tls-length l-set) 1) (car l-set))
+;;    (t (intersect (car l-set) (intersectall (cdr l-set))))
+;;    )
+;;   )
+
+;; The version in the book
+(defun intersectall (l-set)
+  (cond
+   ((null? (cdr l-set)) (car l-set))
+   (t (intersect (car l-set) (intersectall (cdr l-set))))
+   )
+  )
+
+(intersectall '((a b c) (c a d e) (e f g h a b)))
+
+(defun a-pair? (x)
+  (cond
+   ((atom? x) nil)
+   ((null? x) nil)
+   ((null? (cdr x)) nil)
+   (t (null? (cdr (cdr x))))
+   )
+  )
+
+(a-pair? '((2) (pair)))
+(a-pair? '((2) (pair) a))
+
+(defun first (p)
+  (car p)
+  )
+
+(defun second (p)
+  (car (cdr p))
+  )
+
+(defun build (s1 s2)
+  (cons s1 (cons s2 (quote ())))
+  )
+
+(first (build 'a 'b))
+(second (build 'a 'b))
+
+(defun third (l)
+  (car (cdr (cdr l)))
+  )
+
+(third '(apples peaches pumpkin pie))
+
+(defun fun? (rel)
+  (set? (firsts rel))
+  )
+
+(fun? '((d 4) (b 0) (b 9) (e 5) (g 4)))
+(fun? '((8 3) (4 2) (7 6) (6 2) (3 4)))
+
+(defun revrel (rel)
+  (cond
+   ((null? rel) nil)
+   (t (cons (build (second (car rel)) (first (car rel))) (revrel (cdr rel))))
+   )
+  )
+
+(revrel '((8 a) (pumpkin pie) (got sick)))
+
+(defun revpair (pair)
+  (build (second pair) (first pair))
+  )
+
+(revpair '(8 a))
+
+(defun revrel2 (rel)
+  (cond
+   ((null? rel) nil)
+   (t (cons (revpair (car rel)) (revrel2 (cdr rel))))
+   )
+  )
+
+(revrel2 '((8 a) (pumpkin pie) (got sick)))
+
+(defun seconds (l)
+  (cond
+   ((null? l) nil)
+   (t (cons (car (cdr (car l))) (seconds (cdr l))))
+   )
+  )
+
+(seconds '(
+           (a b c d)
+           (e f g h)
+           (i j k l)
+           ))
+
+(defun fullfun? (fun)
+  (set? (seconds fun))
+  )
+
+(fullfun? '(
+            (grape raisin)
+            (plum prune)
+            (stewed grape)
+            ))
+
+(defun one-to-one? (fun)
+  (fun? (revrel fun))
+  )
+
+(one-to-one? '(
+            (grape raisin)
+            (plum prune)
+            (stewed grape)
+            ))
+
+
 ;;; tls.el ends here
