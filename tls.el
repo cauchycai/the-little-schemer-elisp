@@ -492,14 +492,14 @@
 
 (defun insertL* (new old l)
   (cond
-    ((null? l) nil)
-    ((atom? (car l))
-     (cond
-      ((eq? old (car l)) (cons new (cons old (insertL* new old (cdr l)))))
-      (t (cons (car l) (insertL* new old (cdr l))))
-      ))
-    (t (cons (insertL* new old (car l)) (insertL* new old (cdr l))))
-    )
+   ((null? l) nil)
+   ((atom? (car l))
+    (cond
+     ((eq? old (car l)) (cons new (cons old (insertL* new old (cdr l)))))
+     (t (cons (car l) (insertL* new old (cdr l))))
+     ))
+   (t (cons (insertL* new old (car l)) (insertL* new old (cdr l))))
+   )
   )
 
 (insertL* 'pecker 'chuck '((how much (wood)) could
@@ -586,5 +586,96 @@
    )
   )
 
+;; C6. Shadows
+
+(defun numbered? (aexp)
+  (cond
+   ((atom? aexp) (number? aexp))
+   ((or (eq? (car (cdr aexp)) (quote o+)) (eq? (car (cdr aexp)) (quote x)) (eq? (car (cdr aexp)) (quote ↑)))
+    (and (numbered? (car aexp)) (numbered? (car (cdr (cdr aexp)))))
+    )
+   (t nil)
+   )
+  )
+
+;; numbered? simplified
+;; (defun numbered? (aexp)
+;;   (cond
+;;    ((atom? aexp) (number? aexp))
+;;     (t (and (numbered? (car aexp)) (numbered? (car (cdr (cdr aexp))))))
+;;    )
+;;   )
+
+(numbered? '(3 o+ (4 x 5)))
+
+(defun value1 (nexp)
+  (cond
+   ((atom? nexp) nexp)
+   ((eq? (car (cdr nexp)) (quote o+)) (o+ (value1 (car nexp)) (value1 (car (cdr (cdr nexp))))))
+   ((eq? (car (cdr nexp)) (quote x)) (x (value1 (car nexp)) (value1 (car (cdr (cdr nexp))))))
+   (t (↑ (value1 (car nexp)) (value (car (cdr (cdr nexp))))))
+   )
+  )
+
+(value1 4)
+(value1 '(2 x 4))
+
+(defun value2 (nexp)
+  (cond
+   ((atom? nexp) nexp)
+   ((eq? (car nexp) (quote o+)) (o+ (value2 (car (cdr nexp))) (value2 (car (cdr (cdr nexp))))))
+   ((eq? (car nexp) (quote x)) (x (value2 (car (cdr nexp))) (value2 (car (cdr (cdr nexp))))))
+   (t (↑ (value2 (car (cdr nexp))) (value2 (car (cdr (cdr nexp))))))
+   )
+  )
+
+(value2 '(x 2 4))
+
+(defun 1st-sub-exp (aexp)
+  (car (cdr aexp))
+  )
+
+(1st-sub-exp '(o+ 3 (x 4 5)))
+
+(defun 2nd-sub-exp (aexp)
+  (car (cdr (cdr aexp)))
+  )
+
+(2nd-sub-exp '(o+ 3 (x 4 5)))
+
+(defun operator (aexp)
+  (car aexp)
+  )
+
+(operator '(o+ 3 (x 4 5)))
+
+(defun value (nexp)
+  (cond
+   ((atom? nexp) nexp)
+   ((eq? (operator nexp) (quote o+)) (o+ (value (1st-sub-exp nexp)) (value (2nd-sub-exp nexp))))
+   ((eq? (operator nexp) (quote x)) (x (value (1st-sub-exp nexp)) (value (2nd-sub-exp nexp))))
+   (t (↑ (value (1st-sub-exp nexp)) (value (2nd-sub-exp nexp))))
+   )
+  )
+
+(value '(x 2 4))
+
+(defun sero? (n)
+  (null? n)
+  )
+
+(defun edd1 (n)
+  (cons (quote ()) n)
+  )
+
+(defun zub1 (n)
+  (cdr n)
+  )
+
+(sero? '())
+(sero? '(()))
+
+;; this returns (nil) => problem for elisp
+(edd1 '())
 
 ;;; tls.el ends here
