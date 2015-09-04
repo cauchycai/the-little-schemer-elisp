@@ -14,6 +14,22 @@
   (eq a1 a2)
   )
 
+(defun eqlist? (l1 l2)
+  (cond
+   ((and (null? l1) (null? l2)) t)
+   ((or (null? l1) (null? l2)) nil)
+   (t (and (equal? (car l1) (car l2)) (eqlist? (cdr l1) (cdr l2))))
+   )
+  )
+
+(defun equal? (s1 s2)
+  (cond
+   ((and (atom? s1) (atom? s2)) (eqan? s1 s2))
+   ((or (atom? s1) (atom? s2)) nil)
+   (t (eqlist? s1 s2))
+   )
+  )
+
 (atom? 'Harry)
 (atom? '*abc$)
 
@@ -531,14 +547,6 @@
 ;; (and a b) = (cond (a b) (t nil))
 ;; (or a b) = (cond (a t) (t b))
 
-(defun eqlist? (l1 l2)
-  (cond
-   ((and (null? l1) (null? l2)) t)
-   ((or (null? l1) (null? l2)) nil)
-   (t (and (equal? (car l1) (car l2)) (eqlist? (cdr l1) (cdr l2))))
-   )
-  )
-
 (defun eqlist1? (l1 l2)
   (cond
    ((and (null? l1) (null? l2)) t)
@@ -560,14 +568,6 @@
    ((null? l2) nil)
    ((atom? (car l2)) nil)
    (t (and (eqlist? (car l1) (car l2)) (eqlist? (cdr l1) (cdr l2))))
-   )
-  )
-
-(defun equal? (s1 s2)
-  (cond
-   ((and (atom? s1) (atom? s2)) (eqan? s1 s2))
-   ((or (atom? s1) (atom? s2)) nil)
-   (t (eqlist? s1 s2))
    )
   )
 
@@ -871,5 +871,186 @@
             (stewed grape)
             ))
 
+;; 8. Lambda the Ultimate
+
+(defun rember-f (test? a l)
+  (cond
+   ((null? l) nil)
+   ((funcall test? (car l) a) (cdr l))
+   (t (cons (car l) (rember-f test? a (cdr l))))
+   )
+  )
+
+(rember-f 'equal? '(pop corn)
+          '(lemonade (pop corn) and (cake)))
+(rember-f 'eq? '(pop corn)
+          '(lemonade (pop corn) and (cake)))
+
+
+(eval
+ '(defun eq?-c (a)
+    (function
+     (lambda (x)
+       (eq? x a))))
+ t)
+(setq eq?-salad (eq?-c 'salad))
+(funcall eq?-salad 'salad)
+
+(eval
+ '(defun rember-f-lambda (test?)
+    (function
+     (lambda (a l)
+       (cond
+        ((null? l) '())
+        ((funcall test? (car l) a) (cdr l))
+        (t (cons (car l) (rember-f test? a (cdr l))))
+        ))))
+ t)
+
+(setq rember-eq? (rember-f-lambda 'eq?))
+(funcall rember-eq? 'tuna '(tuna salad is good))
+(funcall (rember-f-lambda 'eq) 'tuna '(tuna salad is good))
+
+(rember-f 'eq 'eq? '(equal? eq? eqan? eqlist? eqpair?))
+
+(eval
+ '(defun insertL-f (test?)
+    (function
+     (lambda (new old l)
+       (cond
+        ((null? l) '())
+        ((funcall test? (car l) old) (cons new (cons old (cdr l))))
+        (t (cons (car l) (funcall (insertL-f test?) new old (cdr l))))
+        )))
+    )
+ t)
+
+(funcall (insertL-f 'eq) 'teak 'wood '(how much wood could a wood chuck))
+
+(eval
+'(defun insertR-f (test?)
+   (function
+    (lambda (new old l)
+      (cond
+       ((null? l) '())
+       ((funcall test? (car l) old) (cons old (cons new (cdr l))))
+       (t (cons (car l) (funcall (insertR-f test?) new old (cdr l))))
+       )
+      ))
+   )
+t)
+
+(funcall (insertR-f 'eq) 'log 'wood '(how much wood could a wood chuck))
+
+(defun seqL (new old l)
+  (cons new (cons old l))
+  )
+
+(defun seqR (new old l)
+  (cons old (cons new l))
+  )
+
+(eval
+ '(defun insert-g (seq)
+    (function
+     (lambda (new old l)
+       (cond
+        ((null? l) '())
+        ((eq? (car l) old) (funcall seq new old (cdr l)))
+        (t (cons (car l) (funcall (insert-g seq) new old (cdr l))))
+        )
+       ))
+    )
+ t)
+
+(funcall (insert-g 'seqL) 'log 'wood '(how much wood could a wood chuck))
+(funcall (insert-g 'seqR) 'log 'wood '(how much wood could a wood chuck))
+
+(setq insertL (insert-g 'seqL))
+(funcall insertL 'log 'wood '(how much wood could a wood chuck))
+
+(setq insertR (insert-g 'seqR))
+(funcall insertR 'log 'wood '(how much wood could a wood chuck))
+
+(setq insertL (insert-g '(lambda (new old l) (cons new (cons old l)))))
+(funcall insertL 'log 'wood '(how much wood could a wood chuck))
+
+(defun seqS (new old l)
+  (cons new l)
+  )
+
+(setq subst (insert-g 'seqS))
+(funcall subst 'log 'wood '(how much wood could a wood chuck))
+
+(defun atom-to-function (x)
+  (cond
+   ((eq? x 'o+) (lambda (n m) (o+ n m)))
+   ((eq? x 'x) (lambda (n m) (x n m)))
+   (t (lambda (n m) (↑ n m)))
+   )
+  )
+
+(atom-to-function (operator '(o+ 5 3)))
+
+(defun value3 (nexp)
+  (cond
+   ((atom? nexp) nexp)
+   (t (funcall (atom-to-function nexp) (value3 (1st-sub-exp nexp)) (value3 (2nd-sub-exp nexp))))
+   )
+  )
+
+(value3 '(x 2 4))
+
+(eval
+ '(defun multirember-f (test?)
+   (function
+    (lambda (a lat)
+      (cond
+       ((null? lat) '())
+       ((funcall test? (car lat) a) (funcall (multirember-f test?) a (cdr lat)))
+       (t (cons (car lat) (funcall (multirember-f test?) a (cdr lat))))
+       )
+      ))
+   )
+ t)
+
+(funcall (multirember-f 'eq?) 'a '(a b c d a e f g a i))
+
+(defun multiremberT (test? lat)
+  (cond
+   ((null? lat) '())
+   ((funcall test? (car lat)) (multiremberT test? (cdr lat)))
+   (t (cons (car lat) (multiremberT test? (cdr lat))))
+   )
+  )
+
+(setq eq?-tuna (eq?-c 'tuna))
+(funcall eq?-tuna 'tuna)
+(multiremberT eq?-tuna '(tuna aaa bbb ccc ddd eee tuna))
+
+(defun multirember&co (a lat col)
+  (cond
+   ((null? lat)
+    (funcall col '() '()))
+   ((eq? (car lat) a)
+    (multirember&co a
+                    (cdr lat)
+                    (lambda (newlat seen)
+                      (funcall col newlat (cons (car lat) seen)))))
+   (t
+    (multirember&co a
+                    (cdr lat)
+                    (lambda (newlat seen)
+                      (funcall col (cons (car lat) newlat) seen))))
+   )
+  )
+
+(defun last-friend (x y)
+  (length x)
+  )
+
+(last-friend '(a b c) '(e))
+
+(multirember&co 'tuna '(strawberries tuna and swordfish) '(lambda (x y) (length x)))
 
 ;;; tls.el ends here
